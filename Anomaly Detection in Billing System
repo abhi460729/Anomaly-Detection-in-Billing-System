@@ -1,37 +1,35 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+import numpy as np
+from sklearn.ensemble import IsolationForest
+import matplotlib.pyplot as plt
 
 # Load data
 data = pd.read_csv('billing_data.csv')
 
-# Handle missing values
-data = data.dropna()
-
-# Feature scaling
-scaler = StandardScaler()
-data_scaled = scaler.fit_transform(data[['amount_billed', 'usage', 'billing_interval']])
-from sklearn.ensemble import IsolationForest
+# Feature selection and preprocessing
+features = ['transaction_amount', 'transaction_frequency', 'billing_interval']
+X = data[features]
 
 # Initialize Isolation Forest
-iso_forest = IsolationForest(contamination=0.01)  # assuming 1% of data is anomalous
+model = IsolationForest(contamination=0.01, random_state=42)
 
 # Fit the model
-iso_forest.fit(data_scaled)
+model.fit(X)
 
 # Predict anomalies
-data['anomaly'] = iso_forest.predict(data_scaled)
+data['anomaly'] = model.predict(X)
 
-# -1 indicates anomaly, 1 indicates normal
-anomalies = data[data['anomaly'] == -1]
-print(anomalies)
+# Convert prediction labels (-1 for anomaly, 1 for normal) to boolean
+data['anomaly'] = data['anomaly'] == -1
 
-import matplotlib.pyplot as plt
-
-# Plot the results
+# Visualize anomalies
 plt.figure(figsize=(10, 6))
-plt.scatter(data['billing_date'], data['amount_billed'], c=data['anomaly'], cmap='coolwarm', label='Anomaly')
-plt.xlabel('Billing Date')
-plt.ylabel('Amount Billed')
+plt.scatter(data.index, data['transaction_amount'], c=data['anomaly'], cmap='coolwarm')
 plt.title('Anomaly Detection in Billing Data')
-plt.legend()
+plt.xlabel('Index')
+plt.ylabel('Transaction Amount')
 plt.show()
+
+# Save anomalies for further analysis
+anomalies = data[data['anomaly']]
+anomalies.to_csv('detected_anomalies.csv', index=False)

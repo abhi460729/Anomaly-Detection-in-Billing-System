@@ -1,0 +1,37 @@
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+# Load data
+data = pd.read_csv('billing_data.csv')
+
+# Handle missing values
+data = data.dropna()
+
+# Feature scaling
+scaler = StandardScaler()
+data_scaled = scaler.fit_transform(data[['amount_billed', 'usage', 'billing_interval']])
+from sklearn.ensemble import IsolationForest
+
+# Initialize Isolation Forest
+iso_forest = IsolationForest(contamination=0.01)  # assuming 1% of data is anomalous
+
+# Fit the model
+iso_forest.fit(data_scaled)
+
+# Predict anomalies
+data['anomaly'] = iso_forest.predict(data_scaled)
+
+# -1 indicates anomaly, 1 indicates normal
+anomalies = data[data['anomaly'] == -1]
+print(anomalies)
+
+import matplotlib.pyplot as plt
+
+# Plot the results
+plt.figure(figsize=(10, 6))
+plt.scatter(data['billing_date'], data['amount_billed'], c=data['anomaly'], cmap='coolwarm', label='Anomaly')
+plt.xlabel('Billing Date')
+plt.ylabel('Amount Billed')
+plt.title('Anomaly Detection in Billing Data')
+plt.legend()
+plt.show()
